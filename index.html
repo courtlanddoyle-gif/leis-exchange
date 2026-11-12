@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Leis Exchange</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: exchange shell — top nav, left rail (notable odds), market table, sticky trade slip */
+:root{
+  --bg:#f6f8f7; --surface:#ffffff; --sunk:#eef2f0; --line:#dde4e1; --fg:#14201b; --muted:#5f6f68;
+  --yes:#0e9a6c; --yes-ink:#ffffff; --yes-soft:#e3f5ee; --no:#e9eceb; --no-ink:#33413b;
+  --up:#0e9a6c; --down:#d2463b; --accent:#e0465a; --gold:#c8961e;
+  --display:"Sora",ui-sans-serif,system-ui,sans-serif; --body:"Inter",ui-sans-serif,system-ui,sans-serif; --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0d1311; --surface:#141c19; --sunk:#1b2521; --line:#26332e; --fg:#e7efeb; --muted:#93a59d;
+  --yes:#19b07f; --yes-ink:#04140e; --yes-soft:#123227; --no:#24302b; --no-ink:#d5dfda;
+  --up:#2fc591; --down:#ff6b5e; --accent:#ff6178; --gold:#e6b440; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1311; --surface:#141c19; --sunk:#1b2521; --line:#26332e; --fg:#e7efeb; --muted:#93a59d;
+  --yes:#19b07f; --yes-ink:#04140e; --yes-soft:#123227; --no:#24302b; --no-ink:#d5dfda;
+  --up:#2fc591; --down:#ff6b5e; --accent:#ff6178; --gold:#e6b440; color-scheme:dark}
+*{box-sizing:border-box}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;font-size:14px;line-height:1.4}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:14px}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:30;background:var(--surface)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--yes);outline-offset:2px}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* top nav */
+header{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:var(--surface);border-bottom:1px solid var(--line)}
+.nav{display:flex;align-items:center;gap:20px;height:56px}
+.brand{font-family:var(--display);font-weight:700;font-size:20px;letter-spacing:-.02em;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.brand .dot{width:22px;height:22px;border-radius:50%;background:conic-gradient(var(--accent) 0 25%,var(--gold) 0 50%,var(--yes) 0 75%,#4a7be0 0);display:grid;place-items:center}
+.brand .dot::after{content:"";width:8px;height:8px;border-radius:50%;background:var(--surface)}
+.primary{display:flex;gap:16px;font-weight:600}
+.primary a{color:var(--fg);text-decoration:none}
+.primary .live{color:var(--accent);display:flex;align-items:center;gap:6px}
+.primary .live::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--accent);animation:pulse 1.6s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.search{flex:1;max-width:340px;margin-left:auto;display:flex;align-items:center;gap:8px;background:var(--sunk);border-radius:999px;padding:8px 14px;color:var(--muted)}
+.search input{border:0;background:transparent;outline:0;width:100%;color:var(--fg);font:inherit}
+.bal{display:flex;flex-direction:column;align-items:flex-end;line-height:1.15}
+.bal small{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.bal b{font-size:15px}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--yes-soft);color:var(--yes);display:grid;place-items:center;font-weight:700;font-family:var(--display)}
+.cats{display:flex;gap:18px;overflow-x:auto;padding-block:10px;color:var(--muted);font-weight:500;scrollbar-width:none;border-top:1px solid var(--line)}
+.cats span{white-space:nowrap}
+.cats .on{color:var(--fg);font-weight:600;border-bottom:2px solid var(--fg);padding-bottom:2px}
+
+/* page grid */
+.page{display:grid;grid-template-columns:200px minmax(0,1fr) 300px;gap:24px;padding-block:24px 48px;align-items:start}
+.rail h3{font-family:var(--display);font-size:13px;margin:0 0 10px}
+.rail ul{list-style:none;margin:0 0 24px;padding:0;display:grid;gap:10px}
+.rail li{display:flex;align-items:center;gap:8px;font-size:13px}
+.rail li .sw{width:10px;height:10px;border-radius:3px;flex:none}
+.rail li .nm{flex:1;min-width:0}
+.rail li .od{font-size:12px;color:var(--muted)}
+.rail .od.chg-up{color:var(--up)} .rail .od.chg-down{color:var(--down)}
+.rail a{display:block;color:var(--muted);text-decoration:none;font-size:13px;padding-block:3px}
+.rail a:hover{color:var(--fg)}
+
+/* market header */
+.mhead{display:flex;align-items:center;gap:16px;margin-bottom:16px}
+.logo{width:64px;height:64px;flex:none}
+.mhead h1{font-family:var(--display);font-size:28px;letter-spacing:-.02em;margin:0;text-wrap:balance}
+.mhead p{margin:2px 0 0;color:var(--muted)}
+.mhead .meta{display:flex;gap:14px;margin-top:6px;font-size:12px;color:var(--muted);flex-wrap:wrap}
+.mhead .icons{margin-left:auto;display:flex;gap:6px;align-self:flex-start}
+.ib{width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center}
+.ib.on{color:var(--gold)}
+.tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.tab{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:7px 16px;font-weight:600}
+.tab[aria-selected="true"]{background:var(--yes);border-color:var(--yes);color:var(--yes-ink)}
+
+/* table */
+.tablebox{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:560px}
+th{font-size:12px;color:var(--muted);font-weight:500;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line)}
+th.r{text-align:right}
+td{padding:6px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+tbody tr{cursor:pointer}
+tbody tr:hover td{background:var(--sunk)}
+tbody tr.sel td{background:var(--yes-soft)}
+.seed{width:28px;color:var(--muted);text-align:right}
+.team{display:flex;align-items:center;gap:10px;min-width:0}
+.team .sw{width:14px;height:14px;border-radius:4px;flex:none}
+.team .tn{font-weight:500;overflow-wrap:anywhere}
+.tag{font-size:11px;white-space:nowrap;color:var(--muted)}
+.tag.up{color:var(--up)} .tag.down{color:var(--down)}
+.pct{width:64px;text-align:right;font-weight:600}
+.btns{display:flex;gap:6px;justify-content:flex-end}
+.b{border:0;border-radius:8px;padding:8px 0;width:96px;font-weight:600;transition:transform .08s}
+.b:active{transform:scale(.96)}
+.b.yes{background:var(--yes);color:var(--yes-ink)}
+.b.no{background:var(--no);color:var(--no-ink);width:72px}
+.b.yes.picked{box-shadow:0 0 0 2px var(--fg)} .b.no.picked{box-shadow:0 0 0 2px var(--fg)}
+.flash-up{animation:fu .9s} .flash-down{animation:fd .9s}
+@keyframes fu{0%{color:var(--up)}100%{}} @keyframes fd{0%{color:var(--down)}100%{}}
+.b.yes.flash-up{animation:fby .9s} .b.yes.flash-down{animation:fbn .9s}
+@keyframes fby{0%{filter:brightness(1.35)}} @keyframes fbn{0%{filter:brightness(.7)}}
+
+.feed{margin-top:20px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.feed h3{font-family:var(--display);font-size:14px;margin:0 0 8px;display:flex;align-items:center;gap:8px}
+.feed ol{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:13px;max-height:180px;overflow:hidden}
+.feed li{display:flex;gap:8px;align-items:baseline}
+.feed li .t{color:var(--muted);font-size:11px;width:52px;flex:none}
+.feed li .y{color:var(--yes);font-weight:600} .feed li .n{color:var(--down);font-weight:600}
+.feed li.new{animation:slide .4s}
+@keyframes slide{from{opacity:0;transform:translateY(-4px)}}
+
+/* slip */
+.slip{position:sticky;top:calc(env(safe-area-inset-top,0px) + 120px);background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:grid;gap:14px}
+.slip h2{font-family:var(--display);font-size:17px;margin:0;display:flex;align-items:center;gap:8px}
+.badge{background:var(--yes);color:var(--yes-ink);font-size:11px;border-radius:999px;padding:1px 7px}
+.pick{display:flex;gap:10px;align-items:flex-start}
+.pick .sw{width:28px;height:28px;border-radius:7px;flex:none}
+.pick b{display:block;line-height:1.3}
+.pick small{color:var(--muted)}
+.side{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.side button{border:1px solid var(--line);background:var(--sunk);border-radius:8px;padding:8px;font-weight:600}
+.side button.on.y{background:var(--yes);color:var(--yes-ink);border-color:var(--yes)}
+.side button.on.n{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+canvas{width:100%;height:70px;display:block}
+.amt{display:flex;align-items:center;border:1px solid var(--line);border-radius:8px;padding:0 12px;background:var(--surface)}
+.amt span{color:var(--muted);font-size:18px}
+.amt input{border:0;outline:0;background:transparent;font:600 20px var(--mono);padding:10px 6px;width:100%;color:var(--fg)}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.quick button{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 0;font-size:13px}
+.rows{display:grid;gap:6px;font-size:13px}
+.rows div{display:flex;justify-content:space-between}
+.rows .big{font-size:15px;font-weight:600}
+.rows .big .num{color:var(--yes)}
+.cta{border:0;background:var(--yes);color:var(--yes-ink);font-weight:700;padding:12px;border-radius:10px;font-size:15px}
+.cta:disabled{opacity:.45;cursor:not-allowed}
+.fine{font-size:11px;color:var(--muted);margin:0;text-align:center}
+.err{color:var(--down);font-size:12px;margin:0}
+.pos h3{font-family:var(--display);font-size:13px;margin:0 0 6px}
+.pos ul{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:12px}
+.pos li{display:flex;justify-content:space-between;gap:8px}
+.pos li span:first-child{min-width:0;overflow-wrap:anywhere}
+.pos .empty{color:var(--muted)}
+.board{margin-top:20px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.board h3{font-family:var(--display);font-size:14px;margin:0 0 8px;display:flex;justify-content:space-between;align-items:baseline}
+.board h3 small{font-family:var(--body);font-weight:500;color:var(--muted);font-size:12px}
+.board ol{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.board li{display:grid;grid-template-columns:24px minmax(0,1fr) auto auto;gap:10px;align-items:center;font-size:13px;padding:6px 8px;border-radius:8px}
+.board li.me{background:var(--yes-soft);font-weight:600}
+.board li .rk{color:var(--muted);text-align:right}
+.board li .who{overflow-wrap:anywhere}
+.board li .pl{width:80px;text-align:right}
+.board .empty{color:var(--muted);font-size:13px;padding:4px 0}
+.mode{font-size:12px;color:var(--muted);background:var(--sunk);border-radius:8px;padding:8px 10px;margin:0}
+.mode b{color:var(--fg)}
+.nick{display:flex;gap:6px}
+.nick input{flex:1;min-width:0;border:1px solid var(--line);border-radius:8px;padding:7px 10px;background:var(--surface);color:var(--fg);font:inherit}
+.nick button{border:1px solid var(--line);background:var(--sunk);border-radius:8px;padding:0 12px;font-weight:600}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);opacity:0;background:var(--fg);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;transition:.25s;z-index:40;pointer-events:none;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+
+@media (max-width:1040px){.page{grid-template-columns:minmax(0,1fr) 300px}.rail{display:none}}
+@media (max-width:760px){
+  .page{grid-template-columns:minmax(0,1fr)}
+  .slip{position:static}
+  .search,.primary a:not(.live){display:none}
+  .mhead h1{font-size:22px}.logo{width:48px;height:48px}
+  table{min-width:0}
+  .b{width:62px;padding:7px 0;font-size:13px}.b.no{width:52px}
+  .tag,.pct{display:none}
+  td{padding:6px 8px}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap nav">
+    <div class="brand"><span class="dot"></span>leis·x</div>
+    <nav class="primary"><a href="#">Markets</a><a href="#" class="live">Live</a><a href="#">Ideas</a></nav>
+    <label class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="q" placeholder="Search teams" autocomplete="off"></label>
+    <div class="bal"><small>Balance</small><b class="num" id="bal">$1,000.00</b></div>
+    <div class="avatar" aria-hidden="true">L</div>
+  </div>
+  <div class="wrap cats"><span>Trending</span><span>New</span><span>All</span><span>Politics</span><span class="on">Sports</span><span>Culture</span><span>Crypto</span><span>Climate</span><span>Economics</span><span>Mentions</span><span>Companies</span><span>Financials</span><span>Tech &amp; Science</span><span>Health</span><span>World</span></div>
+</header>
+
+<main class="wrap page">
+  <aside class="rail">
+    <h3>Notable Odds</h3>
+    <ul id="notable"></ul>
+    <h3>More Markets</h3>
+    <a href="#">Team to Win</a><a href="#">Top 3 Finish</a><a href="#">Top 6 Finish</a><a href="#">Upset Alert</a>
+  </aside>
+
+  <section style="min-width:0">
+    <div class="mhead">
+      <svg class="logo" viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="32" r="30" fill="var(--sunk)"/>
+        <g transform="translate(32 32)">
+          <g fill="var(--accent)"><ellipse rx="7" ry="13" cy="-11"/><ellipse rx="7" ry="13" cy="-11" transform="rotate(72)"/><ellipse rx="7" ry="13" cy="-11" transform="rotate(144)"/><ellipse rx="7" ry="13" cy="-11" transform="rotate(216)"/><ellipse rx="7" ry="13" cy="-11" transform="rotate(288)"/></g>
+          <circle r="5" fill="var(--gold)"/>
+        </g>
+      </svg>
+      <div style="min-width:0">
+        <h1>Leis Tournament</h1>
+        <p id="sub">Tournament Winner</p>
+        <div class="meta"><span class="num" id="vol">$48,210 vol</span><span>16 teams</span><span>Single elimination</span></div>
+      </div>
+      <div class="icons">
+        <button class="ib" id="share" aria-label="Copy link"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v13M7 8l5-5 5 5M5 14v6h14v-6"/></svg></button>
+        <button class="ib" id="save" aria-label="Save market"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 3h12v18l-6-4-6 4z"/></svg></button>
+      </div>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-m="win" aria-selected="true">Winner</button>
+      <button class="tab" role="tab" data-m="t4" aria-selected="false">Top 4</button>
+      <button class="tab" role="tab" data-m="t8" aria-selected="false">Top 8</button>
+      <button class="tab" role="tab" data-m="t16" aria-selected="false">Top 16</button>
+    </div>
+
+    <div class="tablebox">
+      <table>
+        <thead><tr><th class="r">#</th><th>Team</th><th class="r pct">Chance</th><th class="r">Odds to Win</th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+
+    <div class="feed">
+      <h3><span class="badge">LIVE</span> Recent trades</h3>
+      <ol id="feed"><li class="t">Loading trades…</li></ol>
+    </div>
+
+    <div class="board">
+      <h3>Leaderboard <small>Cash + current value of bets</small></h3>
+      <ol id="board"><li class="empty">Loading…</li></ol>
+    </div>
+  </section>
+
+  <aside class="slip" aria-label="Bet slip">
+    <h2>Bet Slip <span class="badge" id="slipct">1</span></h2>
+    <div class="pick">
+      <span class="sw" id="pSw"></span>
+      <div style="min-width:0"><b id="pName"></b><small id="pMkt">Tournament Winner</small></div>
+    </div>
+    <div class="side">
+      <button id="sY" class="y on">Yes <span class="num" id="sYp"></span></button>
+      <button id="sN" class="n">No <span class="num" id="sNp"></span></button>
+    </div>
+    <canvas id="spark" width="560" height="140" aria-label="Recent price history"></canvas>
+    <label class="amt" for="amt"><span>$</span><input id="amt" inputmode="decimal" value="25" autocomplete="off"></label>
+    <div class="quick"><button data-a="10">$10</button><button data-a="25">$25</button><button data-a="50">$50</button><button data-a="100">$100</button></div>
+    <div class="rows">
+      <div><span>Avg price</span><span class="num" id="avg"></span></div>
+      <div><span>Contracts</span><span class="num" id="ctr"></span></div>
+      <div><span>Yes price after your bet</span><span class="num" id="after"></span></div>
+      <div class="big"><span>Potential Return</span><span class="num" id="ret"></span></div>
+    </div>
+    <p class="err" id="err" hidden></p>
+    <button class="cta" id="buy">Place Trade</button>
+    <p class="fine">Play money only. Nothing here is real.</p>
+    <p class="mode" id="mode">Connecting to the shared market…</p>
+    <div class="nick" id="nickRow" hidden><input id="nick" maxlength="24" placeholder="Your bettor name" autocomplete="off"><button id="nickSave">Save</button></div>
+    <div class="pos"><h3>Your positions</h3><ul id="pos"></ul></div>
+  </aside>
+</main>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
+<script src="config.js"></script>
+<script>
+const COLORS=["#e8833a","#7b4fd6","#c9a21f","#2f7fd3","#b8392f","#1f9c86","#5b6bd8","#d24e8b","#3a3f8f","#5d6f2a","#d8a42a","#c43b3b","#1f8a5a","#2f9e4a","#cc2f4d","#1f8fae"];
+const TEAMS=[
+ ["Slapping Balls and Chugging Piss",22,"fav"],["Rick's last Cell",48],["The Goys",65,"up"],
+ ["Iraqi Cubano International Enterprises (ICIE)",72],["The Third Rack",77],["Maisiemacgillivray1",80,"down"],
+ ["Dinks-and-Sinksieland Delight",85],["Sluts who leis",86],["Headers",88,"up"],["Worst Case Ontario",90],
+ ["Dumb blondes",92,"down"],["Fahrht",93],["A business meeting",91],["Big dills",84],["Leis Go",81],["Finding Dory on Shore",68]
+].map((t,i)=>({seed:i+1,name:t[0],tag:t[2]||"",color:COLORS[i],base:t[1]}));
+const NOTABLE=[["Cody Lamoureux",400],["Courtland Doyle",375],["Connor Rosow",600],["Gus Macaulay",1200],["Matthew Caplan",1400],["Ben",1600],["Sophie Dart",2500],["Dylan",3000]];
+const MKTS={win:"Tournament Winner",t4:"Top 4 Finish",t8:"Top 8 Finish",t16:"Top 16 Finish"};
+const START=1000, BASE_VOL=48210;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const noOf=y=>clamp(101-y,1,99);
+const $=id=>document.getElementById(id);
+const fmt=n=>"$"+n.toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const store={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+
+let mkt="win", sel=1, side="yes";
+let mode="loading";            // loading | shared | solo
+let players={};                // id -> {balance, trades:[{seed,m,side,c,p,cost,ts}], nick}
+let me=null, ref=null, writing=false;
+let P={}, H={}, vol=BASE_VOL, saved=store.get("lx_saved",false);
+
+/* ---------- market math: prices come from everyone's trades ---------- */
+function impact(t){return (t.side==="yes"?1:-1)*clamp(Math.round(t.cost/25),1,6)}
+function allTrades(){return Object.entries(players).flatMap(([uid,p])=>(p.trades||[]).map(t=>({...t,uid}))).sort((a,b)=>a.ts-b.ts)}
+function computeMarket(){
+  P={win:{},t4:{},t8:{},t16:{}};H={};vol=BASE_VOL;
+  TEAMS.forEach(t=>{const b={win:t.base,t4:clamp(t.base+6,2,97),t8:clamp(t.base+11,2,98),t16:99};
+    for(const m in b){P[m][t.seed]=b[m];H[m+t.seed]=[b[m],b[m]];}});
+  for(const t of allTrades()){if(!P[t.m]||!(t.seed in P[t.m]))continue;
+    P[t.m][t.seed]=clamp(P[t.m][t.seed]+impact(t),1,99);H[t.m+t.seed].push(P[t.m][t.seed]);vol+=t.cost;}
+}
+function mine(){return players[me]||{balance:START,trades:[]}}
+function worth(p){return (p.balance??START)+(p.trades||[]).reduce((s,t)=>{const y=P[t.m][t.seed];return s+t.c*(t.side==="yes"?y:noOf(y))/100},0)}
+function nameOf(uid){if(uid===me)return "You";const p=players[uid];return (p&&p.nick)||(uid.startsWith("bot:")?uid.slice(4):"Someone")}
+
+/* ---------- rendering ---------- */
+function renderNotable(){$("notable").innerHTML=NOTABLE.map((n,i)=>`<li><span class="sw" style="background:${COLORS[i]}"></span><span class="nm">${esc(n[0])}</span><span class="od num">+${n[1]}</span></li>`).join("")}
+function rowHTML(t){const y=P[mkt][t.seed],n=noOf(y);
+  const tag=t.tag==="fav"?'<span class="tag">· Favorite</span>':t.tag==="up"?'<span class="tag up">↑ Higher than Seed</span>':t.tag==="down"?'<span class="tag down">↓ Lower than Seed</span>':"";
+  return `<tr data-s="${t.seed}" class="${t.seed===sel?"sel":""}"><td class="seed num">${t.seed}</td>
+  <td><div class="team"><span class="sw" style="background:${t.color}"></span><span class="tn">${esc(t.name)}</span>${tag}</div></td>
+  <td class="pct num" id="pc${t.seed}">${y}%</td>
+  <td><div class="btns"><button class="b yes num ${t.seed===sel&&side==="yes"?"picked":""}" data-side="yes" id="y${t.seed}">Yes ${y}¢</button><button class="b no num ${t.seed===sel&&side==="no"?"picked":""}" data-side="no" id="n${t.seed}">No ${n}¢</button></div></td></tr>`}
+let lastPrices={};
+function renderRows(){const q=$("q").value.trim().toLowerCase();
+  $("rows").innerHTML=TEAMS.filter(t=>!q||t.name.toLowerCase().includes(q)).map(rowHTML).join("");
+  TEAMS.forEach(t=>{const k=mkt+t.seed,old=lastPrices[k],nv=P[mkt][t.seed];
+    if(old!==undefined&&old!==nv){[$("y"+t.seed),$("pc"+t.seed)].forEach(el=>el&&el.classList.add(nv>old?"flash-up":"flash-down"))}
+    lastPrices[k]=nv;});}
+function price(){const y=P[mkt][sel];return side==="yes"?y:noOf(y)}
+function canTrade(){return mode==="solo"||(mode==="shared"&&!!mine().nick)}
+function renderSlip(){const t=TEAMS[sel-1],y=P[mkt][sel],bal=mine().balance;
+  $("pSw").style.background=t.color;$("pName").textContent=t.name;$("pMkt").textContent=MKTS[mkt];
+  $("sYp").textContent=y+"¢";$("sNp").textContent=noOf(y)+"¢";
+  $("sY").classList.toggle("on",side==="yes");$("sN").classList.toggle("on",side==="no");
+  const a=parseFloat($("amt").value)||0,p=price(),c=Math.floor(a/(p/100));
+  $("avg").textContent=p+"¢";{const mv=(side==="yes"?1:-1)*clamp(Math.round(a/25),1,6),ny=clamp(y+mv,1,99);$("after").textContent=a>0?`${y}¢ → ${ny}¢`:"—";}$("ctr").textContent=c.toLocaleString();$("ret").textContent=fmt(c);
+  const e=$("err");
+  if(!canTrade()){e.textContent=mode==="loading"?"Connecting…":"Pick a bettor name below first, so people know who's betting.";e.hidden=false}
+  else if(a<=0){e.textContent="Enter an amount above $0.";e.hidden=false}
+  else if(a>bal){e.textContent=`That's more than your ${fmt(bal)} balance.`;e.hidden=false}
+  else e.hidden=true;
+  $("buy").disabled=!e.hidden||writing;$("buy").textContent=`Buy ${side==="yes"?"Yes":"No"} · ${fmt(a)}`;
+  drawSpark();}
+function renderPos(){const ul=$("pos"),tr=mine().trades||[];$("slipct").textContent=String(1+tr.length);
+  if(!tr.length){ul.innerHTML='<li class="empty">No bets yet. Pick a team and place one.</li>';return}
+  ul.innerHTML=tr.slice(-8).reverse().map(p=>{const t=TEAMS[p.seed-1],y=P[p.m][p.seed],now=p.side==="yes"?y:noOf(y),pl=p.c*now/100-p.cost;
+   return `<li><span>${p.side==="yes"?"Yes":"No"} · ${esc(t.name)} <span style="color:var(--muted)">(${MKTS[p.m].replace(" Finish","")})</span></span><span class="num" style="color:${pl>=0?"var(--up)":"var(--down)"}">${pl>=0?"+":"−"}${fmt(Math.abs(pl))}</span></li>`}).join("")}
+function renderFeed(){const tr=allTrades().filter(t=>t.m===mkt).slice(-8).reverse(),f=$("feed");
+  if(!tr.length){f.innerHTML='<li class="t">No bets on this market yet. Be the first.</li>';return}
+  f.innerHTML=tr.map(t=>`<li${t.uid===me?' style="font-weight:600"':""}><span class="t num">${new Date(t.ts).toTimeString().slice(0,5)}</span><span><b>${esc(nameOf(t.uid))}</b> bought <span class="${t.side==="yes"?"y":"n"}">${t.side==="yes"?"Yes":"No"}</span> on ${esc(TEAMS[t.seed-1].name)} · <span class="num">${fmt(t.cost)}</span> @ ${t.p}¢</span></li>`).join("")}
+function renderBoard(){const rows=Object.entries(players).filter(([,p])=>(p.trades||[]).length).map(([uid,p])=>({uid,w:worth(p)})).sort((a,b)=>b.w-a.w),b=$("board");
+  if(!rows.length){b.innerHTML='<li class="empty">Nobody has bet yet. Place a bet to get on the board.</li>';return}
+  b.innerHTML=rows.slice(0,15).map((r,i)=>{const pl=r.w-START;return `<li class="${r.uid===me?"me":""}"><span class="rk num">${i+1}</span><span class="who">${esc(nameOf(r.uid))}</span><span class="num">${fmt(r.w)}</span><span class="pl num" style="color:${pl>=0?"var(--up)":"var(--down)"}">${pl>=0?"+":"−"}${fmt(Math.abs(pl))}</span></li>`}).join("")}
+function renderTop(){$("bal").textContent=fmt(mine().balance);$("vol").textContent="$"+Math.round(vol).toLocaleString()+" vol"}
+function renderMode(){const m=$("mode");
+  m.innerHTML=mode==="shared"?"<b>Live market.</b> Everyone on this site sees the same prices, bets and leaderboard."
+   :mode==="solo"?"<b>Solo mode.</b> The shared market isn't connected yet, so bets are saved in this browser only."
+   :"Connecting to the shared market…";
+  $("nickRow").hidden=mode!=="shared";}
+function renderAll(){computeMarket();renderRows();renderSlip();renderPos();renderFeed();renderBoard();renderTop();renderMode();}
+function drawSpark(){const cv=$("spark"),g=cv.getContext("2d"),h=(H[mkt+sel]||[50,50]).slice(-40).map(v=>side==="yes"?v:noOf(v)),W=cv.width,Ht=cv.height,cs=getComputedStyle(document.documentElement);
+  const col=(side==="yes"?cs.getPropertyValue("--yes"):cs.getPropertyValue("--fg")).trim(),ln=cs.getPropertyValue("--line").trim();
+  g.clearRect(0,0,W,Ht);const mn=Math.min(...h)-3,mx=Math.max(...h)+3,X=i=>i/(h.length-1)*(W-16)+4,Y=v=>Ht-8-(v-mn)/(mx-mn)*(Ht-16);
+  g.strokeStyle=ln;g.lineWidth=1;[.25,.5,.75].forEach(f=>{g.beginPath();g.moveTo(0,Ht*f);g.lineTo(W,Ht*f);g.stroke()});
+  g.beginPath();h.forEach((v,i)=>i?g.lineTo(X(i),Y(v)):g.moveTo(X(i),Y(v)));g.strokeStyle=col;g.lineWidth=3;g.stroke();
+  g.lineTo(X(h.length-1),Ht);g.lineTo(X(0),Ht);g.closePath();g.globalAlpha=.12;g.fillStyle=col;g.fill();g.globalAlpha=1;
+  g.beginPath();g.arc(X(h.length-1),Y(h[h.length-1]),6,0,7);g.fillStyle=col;g.fill();}
+function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove("show"),2400)}
+
+/* ---------- saving ---------- */
+async function saveMine(doc){
+  players[me]=doc;renderAll();
+  if(mode==="solo"){store.set("lx_solo",{balance:doc.balance,trades:doc.trades});return true}
+  writing=true;renderSlip();
+  try{await ref.child(me).set(doc);return true}
+  catch(e){toast("That didn't save. Check your connection and try again.");return false}
+  finally{writing=false;renderSlip()}}
+$("buy").onclick=async()=>{if(!canTrade()||writing)return;
+  const cur=mine(),a=parseFloat($("amt").value)||0,p=price(),c=Math.floor(a/(p/100));if(a<=0||a>cur.balance||!c)return;
+  const cost=Math.round(c*p)/100,t={seed:sel,m:mkt,side,c,p,cost,ts:Date.now()};
+  const doc={...cur,balance:Math.round((cur.balance-cost)*100)/100,trades:[...(cur.trades||[]),t]};
+  if(await saveMine(doc))toast(`Bought ${c} ${side==="yes"?"Yes":"No"} @ ${p}¢ on ${TEAMS[sel-1].name}`)};
+$("nickSave").onclick=async()=>{const n=$("nick").value.trim().slice(0,24);const cur=mine();
+  if(await saveMine({...cur,balance:cur.balance??START,trades:cur.trades||[],nick:n}))toast(n?`You're "${n}" on the board`:"Name cleared")};
+
+/* ---------- controls ---------- */
+$("rows").addEventListener("click",e=>{const tr=e.target.closest("tr");if(!tr)return;sel=+tr.dataset.s;const b=e.target.closest("button");if(b)side=b.dataset.side;renderRows();renderSlip();
+  if(innerWidth<=760&&b)$("amt").scrollIntoView({behavior:"smooth",block:"center"})});
+document.querySelectorAll(".tab").forEach(b=>b.addEventListener("click",()=>{mkt=b.dataset.m;document.querySelectorAll(".tab").forEach(x=>x.setAttribute("aria-selected",x===b));$("sub").textContent=MKTS[mkt];renderRows();renderSlip();renderFeed()}));
+$("sY").onclick=()=>{side="yes";renderRows();renderSlip()};$("sN").onclick=()=>{side="no";renderRows();renderSlip()};
+$("amt").addEventListener("input",renderSlip);
+document.querySelectorAll(".quick button").forEach(b=>b.onclick=()=>{$("amt").value=b.dataset.a;renderSlip()});
+$("q").addEventListener("input",renderRows);
+$("save").classList.toggle("on",saved);$("save").onclick=()=>{saved=!saved;store.set("lx_saved",saved);$("save").classList.toggle("on",saved);toast(saved?"Market saved":"Removed from saved")};
+$("share").onclick=()=>{const p=navigator.clipboard&&navigator.clipboard.writeText(location.href);if(!p){toast("Copy the link from your address bar");return}p.then(()=>toast("Link copied"),()=>toast("Copy the link from your address bar"))};
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",drawSpark);
+
+/* ---------- solo fallback: local bets plus a few house bots for activity ---------- */
+const BOTS=["hulagirl22","tikitorch","coconutcarl","maui_wowie","luau_larry"];
+function startSolo(){if(mode==="solo")return;mode="solo";me="me";
+  const s=store.get("lx_solo",null);players={me:s||{balance:START,trades:[]}};
+  BOTS.forEach(b=>players["bot:"+b]={balance:START,trades:[]});
+  renderAll();
+  setInterval(()=>{const b=players["bot:"+BOTS[Math.floor(Math.random()*BOTS.length)]],seed=1+Math.floor(Math.random()*16),sd=Math.random()<.55?"yes":"no",y=P.win[seed],p=sd==="yes"?y:noOf(y),cost=Math.round(10+Math.random()*90);
+    if(b.balance<cost)return;b.balance-=cost;b.trades.push({seed,m:"win",side:sd,c:Math.floor(cost/(p/100)),p,cost,ts:Date.now()});renderAll()},2500);}
+
+/* ---------- shared mode (Firebase Realtime Database) ---------- */
+function myId(){let id=store.get("lx_id",null);if(!id){id="p"+Date.now().toString(36)+Math.random().toString(36).slice(2,8);store.set("lx_id",id)}return id}
+(function(){
+  renderNotable();renderAll();
+  const cfg=window.LEIS_FIREBASE;
+  if(!window.firebase||!cfg||!cfg.databaseURL){startSolo();return}
+  const timer=setTimeout(()=>{if(mode==="loading")startSolo()},10000);
+  try{firebase.initializeApp(cfg);ref=firebase.database().ref("leis/players")}catch(e){clearTimeout(timer);startSolo();return}
+  me=myId();
+  ref.on("value",snap=>{
+    clearTimeout(timer);if(mode==="loading")mode="shared";if(mode!=="shared")return;
+    const next=snap.val()||{};
+    if(writing&&players[me])next[me]=players[me];
+    players=next;
+    if(players[me]&&players[me].nick&&document.activeElement!==$("nick"))$("nick").value=players[me].nick;
+    renderAll();
+  },err=>{clearTimeout(timer);if(mode==="loading")startSolo();else toast("Lost connection to the market. Reload to reconnect.")});
+})();
+</script>
+</body>
+</html>
